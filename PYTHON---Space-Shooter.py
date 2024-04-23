@@ -1,0 +1,112 @@
+import pygame
+import random
+
+# Initialize Pygame
+pygame.init()
+
+# Set up the screen dimensions
+screen_width = 800
+screen_height = 600
+screen = pygame.display.set_mode((screen_width, screen_height))
+pygame.display.set_caption("Space Shooter")
+
+# Colors
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+
+# Player
+player_img = pygame.image.load("player.png")
+player_width = 64
+player_height = 64
+player_x = screen_width // 2 - player_width // 2
+player_y = screen_height - player_height - 20
+player_speed = 5
+
+# Enemies
+enemy_img = pygame.image.load("enemy.png")
+enemy_width = 64
+enemy_height = 64
+enemy_speed = 3
+enemies = []
+enemy_spawn_delay = 100  # Delay between enemy spawns
+last_enemy_spawn = pygame.time.get_ticks()
+
+# Bullets
+bullet_img = pygame.image.load("bullet.png")
+bullet_width = 8
+bullet_height = 32
+bullet_speed = 10
+bullets = []
+
+# Score
+score = 0
+font = pygame.font.Font(None, 36)
+
+# Game over flag
+game_over = False
+
+# Main game loop
+clock = pygame.time.Clock()
+running = True
+while running:
+    screen.fill(BLACK)
+
+    # Handle events
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+
+    if not game_over:
+        # Player movement
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_LEFT] and player_x > 0:
+            player_x -= player_speed
+        if keys[pygame.K_RIGHT] and player_x < screen_width - player_width:
+            player_x += player_speed
+
+        # Enemy spawning
+        if pygame.time.get_ticks() - last_enemy_spawn > enemy_spawn_delay:
+            enemy_x = random.randint(0, screen_width - enemy_width)
+            enemy_y = -enemy_height
+            enemies.append([enemy_x, enemy_y])
+            last_enemy_spawn = pygame.time.get_ticks()
+
+        # Enemy movement and collision detection
+        for enemy in enemies:
+            enemy[1] += enemy_speed
+            if enemy[1] > screen_height:
+                enemies.remove(enemy)
+            enemy_rect = pygame.Rect(enemy[0], enemy[1], enemy_width, enemy_height)
+            player_rect = pygame.Rect(player_x, player_y, player_width, player_height)
+            if enemy_rect.colliderect(player_rect):
+                game_over = True
+            screen.blit(enemy_img, (enemy[0], enemy[1]))
+
+        # Bullet movement and collision detection
+        for bullet in bullets:
+            bullet[1] -= bullet_speed
+            if bullet[1] < 0:
+                bullets.remove(bullet)
+            bullet_rect = pygame.Rect(bullet[0], bullet[1], bullet_width, bullet_height)
+            for enemy in enemies:
+                enemy_rect = pygame.Rect(enemy[0], enemy[1], enemy_width, enemy_height)
+                if bullet_rect.colliderect(enemy_rect):
+                    bullets.remove(bullet)
+                    enemies.remove(enemy)
+                    score += 1
+            screen.blit(bullet_img, (bullet[0], bullet[1]))
+
+        # Display player
+        screen.blit(player_img, (player_x, player_y))
+
+        # Display score
+        score_text = font.render("Score: " + str(score), True, WHITE)
+        screen.blit(score_text, (10, 10))
+
+        # Update the display
+        pygame.display.update()
+
+        # Cap the frame rate
+        clock.tick(60)
+
+pygame.quit()
